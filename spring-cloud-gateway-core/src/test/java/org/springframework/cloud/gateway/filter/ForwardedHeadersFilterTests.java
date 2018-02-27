@@ -17,6 +17,12 @@
 
 package org.springframework.cloud.gateway.filter;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.Test;
 
 import org.springframework.cloud.gateway.filter.ForwardedHeadersFilter.Forwarded;
@@ -24,15 +30,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.cloud.gateway.filter.ForwardedHeadersFilter.FORWARDED_HEADER;
-import static org.springframework.cloud.gateway.filter.ForwardedHeadersFilter.parse;
 
 /**
  * @author Spencer Gibb
@@ -68,37 +67,49 @@ public class ForwardedHeadersFilterTests {
 				"For=\"[2001:db8:cafe::17]:4711\"",
 		};
 
-		List<Map<String, String>> expectedFor = new ArrayList<Map<String, String>>() {{
-				add(map("for", "\"_gazonk\""));
-				add(map("for", "192.0.2.60"));
-				add(map("for", "192.0.2.43,198.51.100.17"));
-				add(map("for", "12.34.56.78,23.45.67.89"));
-				add(map("for", "12.34.56.78,23.45.67.89,10.1.2.3"));
-				add(map("for", "\"[2001:db8:cafe::17]:4711\""));
+		@SuppressWarnings("unchecked")
+		List<List<Map<String, String>>> expectedFor = new ArrayList<List<Map<String, String>>>() {{
+				add(list(map("for", "\"_gazonk\"")));
+				add(list(map("for", "192.0.2.60", "proto", "http", "by", "203.0.113.43")));
+				add(list(map("for", "192.0.2.43"), map("for", "198.51.100.17")));
+				add(list(map("for", "12.34.56.78", "host", "example.com", "proto", "https"),
+						map("for", "23.45.67.89")));
+				add(list(map("for", "12.34.56.78"),
+						map("for", "23.45.67.89", "secret", "egah2CGj55fSJFs"),
+						map("for", "10.1.2.3")));
+				add(list(map("for", "\"[2001:db8:cafe::17]:4711\"")));
 		}};
 
 		for (int i = 0; i < valid.length; i++) {
 			String value = valid[i];
 			// simulate spring's parsed headers
 			String[] values = StringUtils.tokenizeToStringArray(value, ",");
-			List<Forwarded> results = parse(Arrays.asList(values));
-			System.out.println(results);
+			List<Forwarded> results = ForwardedHeadersFilter.parse(Arrays.asList(values));
+			// System.out.println("results: "+results);
 
 			assertThat(results).hasSize(values.length);
 			assertThat(results.get(0)).isNotNull();
 
-			Map<String, String> expected = expectedFor.get(i);
-			System.out.println(Arrays.asList(expected));
+			List<Map<String, String>> expected = expectedFor.get(i);
+			// System.out.println("expected: "+Arrays.asList(expected));
+			assertThat(expected).hasSize(results.size());
+
 			for (int j = 0; j < results.size(); j++) {
 				Forwarded forwarded = results.get(j);
-				assertThat(forwarded.getValues()).containsEntry("for", expected.get("for"));
+				assertThat(forwarded.getValues()).hasSize(expected.get(j).size())
+						.containsAllEntriesOf(expected.get(j));
 			}
 		}
 	}
 
+	private List<Map<String, String>> list(Map<String, String>... map) {
+		return new ArrayList<>(Arrays.asList(map));
+	}
+
 	private Map<String, String> map(String... values) {
 		if (values.length % 2 != 0) {
-			throw new IllegalArgumentException("values must have even number of items: "+ Arrays.asList(values));
+			throw new IllegalArgumentException("values must have even number of items: "
+					+ Arrays.asList(values));
 		}
 		HashMap<String, String> map = new HashMap<>();
 		for (int i = 0; i < values.length; i++) {

@@ -18,14 +18,15 @@
 package org.springframework.cloud.gateway.filter;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.jetbrains.annotations.Nullable;
+
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedCaseInsensitiveMap;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -48,18 +49,25 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 				.filter(entry -> !entry.getKey().toLowerCase().equalsIgnoreCase(FORWARDED_HEADER))
 				.forEach(entry -> updated.addAll(entry.getKey(), entry.getValue()));
 
-		//TODO: read Forwarded if exists
 		List<Forwarded> forwardeds = parse(original.get(FORWARDED_HEADER));
 
 		for (Forwarded f : forwardeds) {
 			updated.add(FORWARDED_HEADER, f.toString());
 		}
 
+		//TODO: add new forwarded
+		updated.add(FORWARDED_HEADER, new Forwarded()
+				.put("host", original.getFirst(HttpHeaders.HOST))
+				.toHeaderValue());
+
 		return updated;
 	}
 
     /* for testing */ static List<Forwarded> parse(List<String> values) {
 		ArrayList<Forwarded> forwardeds = new ArrayList<>();
+		if (CollectionUtils.isEmpty(values)) {
+			return forwardeds;
+		}
     	for (String value : values) {
 			Forwarded forwarded = parse(value);
 			forwardeds.add(forwarded);
@@ -97,12 +105,22 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 
 	/* for testing */ static class Forwarded {
 
-		private static final String COMMA = ", ";
 		private static final char EQUALS = '=';
+		private static final char SEMICOLON = ';';
+
 		private final Map<String, String> values;
+
+		public Forwarded() {
+			this.values = new HashMap<>();
+		}
 
 		public Forwarded(Map<String, String> values) {
 			this.values = values;
+		}
+
+		public Forwarded put(String key, String value) {
+			this.values.put(key, value);
+			return this;
 		}
 
 		public String get(String key) {
@@ -120,14 +138,17 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 					'}';
 		}
 
-		private void appendList(StringBuilder s, String key, List<String> list) {
-			boolean addComma = false;
-			for (String value : list) {
-				if (addComma) {
-					s.append(COMMA);
+		public String toHeaderValue() {
+			StringBuilder builder = new StringBuilder();
+			for (Map.Entry<String, String> entry : this.values.entrySet()) {
+				if (builder.length() > 0) {
+					builder.append(SEMICOLON);
 				}
-				s.append(key).append(EQUALS).append(value);
+				builder.append(entry.getKey())
+						.append(EQUALS)
+						.append(entry.getValue());
 			}
+			return builder.toString();
 		}
 	}
 
