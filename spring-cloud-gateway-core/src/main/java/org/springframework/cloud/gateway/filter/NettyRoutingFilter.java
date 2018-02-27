@@ -79,7 +79,7 @@ public class NettyRoutingFilter implements GlobalFilter, Ordered {
 		final String url = requestUrl.toString();
 
 		HttpHeaders filtered = HttpHeadersFilter.filter(this.headersFilters.getIfAvailable(),
-				request.getHeaders());
+				request);
 
 		final DefaultHttpHeaders httpHeaders = new DefaultHttpHeaders();
 		filtered.forEach(httpHeaders::set);

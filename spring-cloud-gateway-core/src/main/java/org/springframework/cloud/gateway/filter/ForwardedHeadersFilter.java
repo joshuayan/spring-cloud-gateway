@@ -17,6 +17,8 @@
 
 package org.springframework.cloud.gateway.filter;
 
+import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedCaseInsensitiveMap;
 import org.springframework.util.ObjectUtils;
@@ -41,7 +44,8 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 	}
 
 	@Override
-	public HttpHeaders filter(HttpHeaders original) {
+	public HttpHeaders filter(ServerHttpRequest request) {
+		HttpHeaders original = request.getHeaders();
 		HttpHeaders updated = new HttpHeaders();
 
 		// copy all headers except Forwarded
@@ -56,9 +60,19 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 		}
 
 		//TODO: add new forwarded
-		updated.add(FORWARDED_HEADER, new Forwarded()
+		URI uri = request.getURI();
+		Forwarded forwarded = new Forwarded()
 				.put("host", original.getFirst(HttpHeaders.HOST))
-				.toHeaderValue());
+				.put("proto", uri.getScheme());
+
+		InetSocketAddress remoteAddress = request.getRemoteAddress();
+		if (remoteAddress != null) {
+			String address = remoteAddress.getAddress().getHostAddress();
+			int port = remoteAddress.getPort();
+			forwarded.put("for", "\"" + address + ":" + port + "\"");
+		}
+
+		updated.add(FORWARDED_HEADER, forwarded.toHeaderValue());
 
 		return updated;
 	}

@@ -67,7 +67,7 @@ public class RemoveHopByHopHeadersFilterTests {
 
 	private void testFilter(MockServerHttpRequest request, String... additionalHeaders) {
 		RemoveHopByHopHeadersFilter filter = new RemoveHopByHopHeadersFilter();
-		HttpHeaders headers = filter.filter(request.getHeaders());
+		HttpHeaders headers = filter.filter(request);
 
 		Set<String> toRemove = new HashSet<>(HEADERS_REMOVED_ON_REQUEST);
 		toRemove.addAll(Arrays.asList(additionalHeaders));

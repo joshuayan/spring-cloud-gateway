@@ -17,6 +17,9 @@
 
 package org.springframework.cloud.gateway.filter;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,21 +42,28 @@ import static org.springframework.cloud.gateway.filter.ForwardedHeadersFilter.FO
 public class ForwardedHeadersFilterTests {
 
 	@Test
-	public void forwardedHeaderDoesNotExist() {
+	public void forwardedHeaderDoesNotExist() throws UnknownHostException {
 		MockServerHttpRequest request = MockServerHttpRequest
 				.get("http://localhost/get")
+				.remoteAddress(new InetSocketAddress(InetAddress.getByName("10.0.0.1"), 80))
 				.header(HttpHeaders.HOST, "myhost")
 				.build();
 
 		ForwardedHeadersFilter filter = new ForwardedHeadersFilter();
 
-		HttpHeaders headers = filter.filter(request.getHeaders());
+		HttpHeaders headers = filter.filter(request);
 
 		assertThat(headers.get(FORWARDED_HEADER)).hasSize(1);
 
-		String forwarded = headers.getFirst(FORWARDED_HEADER);
+		List<Forwarded> forwardeds = ForwardedHeadersFilter.parse(headers.get(FORWARDED_HEADER));
 
-		assertThat(forwarded).isEqualTo("host=myhost");
+		assertThat(forwardeds).hasSize(1);
+		Forwarded forwarded = forwardeds.get(0);
+
+		assertThat(forwarded.getValues())
+				.containsEntry("host", "myhost")
+				.containsEntry("proto", "http")
+				.containsEntry("for", "\"10.0.0.1:80\"");
 	}
 
 	@Test

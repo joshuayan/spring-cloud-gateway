@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 
 public class RemoveHopByHopHeadersFilter implements HttpHeadersFilter, Ordered {
 
@@ -32,7 +33,8 @@ public class RemoveHopByHopHeadersFilter implements HttpHeadersFilter, Ordered {
 	}
 
 	@Override
-	public HttpHeaders filter(HttpHeaders original) {
+	public HttpHeaders filter(ServerHttpRequest request) {
+		HttpHeaders original = request.getHeaders();
 		HttpHeaders filtered = new HttpHeaders();
 		List<String> connection = original.getConnection();
 		Set<String> toFilter = new HashSet<>(connection);

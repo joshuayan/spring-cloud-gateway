@@ -55,11 +55,11 @@ public class WebsocketRoutingFilter implements GlobalFilter, Ordered {
 		setAlreadyRouted(exchange);
 
 
-		HttpHeaders headers = exchange.getRequest().getHeaders();
-		HttpHeaders filtered = HttpHeadersFilter.filter(getHeadersFilters(),
-				headers);
+		List<String> protocols = exchange.getRequest().getHeaders()
+				.get(SEC_WEBSOCKET_PROTOCOL);
 
-		List<String> protocols = headers.get(SEC_WEBSOCKET_PROTOCOL);
+		HttpHeaders filtered = HttpHeadersFilter.filter(getHeadersFilters(),
+				exchange.getRequest());
 
 		return this.webSocketService.handleRequest(exchange,
 				new ProxyWebSocketHandler(requestUrl, this.webSocketClient,
@@ -72,9 +72,9 @@ public class WebsocketRoutingFilter implements GlobalFilter, Ordered {
 			filters = new ArrayList<>();
 		}
 
-		filters.add(original -> {
+		filters.add(request -> {
 			HttpHeaders filtered = new HttpHeaders();
-			original.entrySet().stream()
+			request.getHeaders().entrySet().stream()
 					.filter(entry -> !entry.getKey().toLowerCase().startsWith("sec-websocket"))
 					.forEach(header -> filtered.addAll(header.getKey(), header.getValue()));
 			return filtered;
