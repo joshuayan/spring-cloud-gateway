@@ -63,7 +63,7 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 		URI uri = request.getURI();
 		String host = original.getFirst(HttpHeaders.HOST);
 		Forwarded forwarded = new Forwarded()
-				.put("host", quoteIfNeeded(host))
+				.put("host", host)
 				.put("proto", uri.getScheme());
 
 		InetSocketAddress remoteAddress = request.getRemoteAddress();
@@ -73,7 +73,7 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 			if (port >= 0) {
 				forValue = forValue + ":" + port;
 			}
-			forwarded.put("for", quoteIfNeeded(forValue));
+			forwarded.put("for", forValue);
 		}
 		// TODO: support by?
 
@@ -82,12 +82,6 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 		return updated;
 	}
 
-	private String quoteIfNeeded(String s) {
-		if (s.contains(":")) { //TODO: broaded quote
-			return "\""+s+"\"";
-		}
-		return s;
-	}
 
 	/* for testing */ static List<Forwarded> parse(List<String> values) {
 		ArrayList<Forwarded> forwardeds = new ArrayList<>();
@@ -145,8 +139,16 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 		}
 
 		public Forwarded put(String key, String value) {
-			this.values.put(key, value);
+			this.values.put(key, quoteIfNeeded(value));
 			return this;
+		}
+
+
+		private String quoteIfNeeded(String s) {
+			if (s.contains(":")) { //TODO: broaded quote
+				return "\""+s+"\"";
+			}
+			return s;
 		}
 
 		public String get(String key) {
