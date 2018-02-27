@@ -15,7 +15,7 @@
  *
  */
 
-package org.springframework.cloud.gateway.filter;
+package org.springframework.cloud.gateway.filter.headers;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -61,23 +61,35 @@ public class ForwardedHeadersFilter implements HttpHeadersFilter, Ordered {
 
 		//TODO: add new forwarded
 		URI uri = request.getURI();
+		String host = original.getFirst(HttpHeaders.HOST);
 		Forwarded forwarded = new Forwarded()
-				.put("host", original.getFirst(HttpHeaders.HOST))
+				.put("host", quoteIfNeeded(host))
 				.put("proto", uri.getScheme());
 
 		InetSocketAddress remoteAddress = request.getRemoteAddress();
 		if (remoteAddress != null) {
-			String address = remoteAddress.getAddress().getHostAddress();
+			String forValue = remoteAddress.getAddress().getHostAddress();
 			int port = remoteAddress.getPort();
-			forwarded.put("for", "\"" + address + ":" + port + "\"");
+			if (port >= 0) {
+				forValue = forValue + ":" + port;
+			}
+			forwarded.put("for", quoteIfNeeded(forValue));
 		}
+		// TODO: support by?
 
 		updated.add(FORWARDED_HEADER, forwarded.toHeaderValue());
 
 		return updated;
 	}
 
-    /* for testing */ static List<Forwarded> parse(List<String> values) {
+	private String quoteIfNeeded(String s) {
+		if (s.contains(":")) { //TODO: broaded quote
+			return "\""+s+"\"";
+		}
+		return s;
+	}
+
+	/* for testing */ static List<Forwarded> parse(List<String> values) {
 		ArrayList<Forwarded> forwardeds = new ArrayList<>();
 		if (CollectionUtils.isEmpty(values)) {
 			return forwardeds;

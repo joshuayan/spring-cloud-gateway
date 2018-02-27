@@ -15,7 +15,7 @@
  *
  */
 
-package org.springframework.cloud.gateway.filter;
+package org.springframework.cloud.gateway.filter.headers;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -28,13 +28,13 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import org.springframework.cloud.gateway.filter.ForwardedHeadersFilter.Forwarded;
+import org.springframework.cloud.gateway.filter.headers.ForwardedHeadersFilter.Forwarded;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.util.StringUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.cloud.gateway.filter.ForwardedHeadersFilter.FORWARDED_HEADER;
+import static org.springframework.cloud.gateway.filter.headers.ForwardedHeadersFilter.FORWARDED_HEADER;
 
 /**
  * @author Spencer Gibb
